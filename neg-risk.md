@@ -22,9 +22,8 @@ Neg Risk's workflow is quite confusing because certain contract `address` variab
 
 ```mermaid
 classDiagram
-    NegRiskOperator <|-- NegRiskAdapter
-    NegRiskAdapter <|-- ConditionalToken
-    UmaCtfAdapter <|-- NegRiskAdapter
+    NegRiskAdapter <|-- NegRiskOperator
+    UmaCtfAdapter <|-- NegRiskOperator
     NegRiskOperator <|-- UmaCtfAdapter
     NegRiskCtfExchange <|-- NegRiskAdapter
     NegRiskAdapter <|-- NegRiskCtfExchange
