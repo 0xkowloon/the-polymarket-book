@@ -14,7 +14,7 @@ The conditional tokens framework is an ERC-1155 that enables splitting a market 
 
 **Position ID**: A position ID refers to a condition backed by a specific collateral token. It is the final ERC-1155 token IDs that we can trade on Polymarket. Collateral token in this case is USDC, but it is possible to create a different position with another collateral token such as USDT. They both point to the same question/condition/collection. If a market result is reported, both positions can be simultaneously resolved.
 
-#### Getting a question to be trade ready
+#### Getting a question to be trade-ready
 
 The sequence of functions that need to be called is as follows:
 
