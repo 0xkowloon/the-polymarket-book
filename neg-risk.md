@@ -20,75 +20,175 @@ Neg Risk's workflow is quite confusing because certain contract `address` variab
 
 **Dependencies**
 
-```mermaid
-classDiagram
-    NegRiskAdapter <|-- NegRiskOperator
-    UmaCtfAdapter <|-- NegRiskOperator
-    NegRiskOperator <|-- UmaCtfAdapter
-    NegRiskCtfExchange <|-- NegRiskAdapter
-    NegRiskAdapter <|-- NegRiskCtfExchange
+```plantuml
+@startuml
 
-    class NegRiskCtfExchange{
-        ctf: NegRiskAdapter
+class NegRiskCtfExchange {
+    ctf: NegRiskAdapter
+}
 
-    }
-    class NegRiskAdapter{
-        ctf: ConditionalToken
-        admin: NegRiskCtfExchange
-    }
-    class UmaCtfAdapter{
-        ctf: NegRiskOperator
-    }
-    class NegRiskOperator{
-        oracle: UmaCtfAdapter
-        nrAdapter: NegRiskAdapter
-    }
+class NegRiskAdapter {
+    ctf: ConditionalToken
+    admin: NegRiskCtfExchange
+}
+
+class UmaCtfAdapter {
+    ctf: NegRiskOperator
+}
+
+class NegRiskOperator {
+    oracle: UmaCtfAdapter
+    nrAdapter: NegRiskAdapter
+}
+
+NegRiskAdapter <|-- NegRiskOperator
+UmaCtfAdapter <|-- NegRiskOperator
+
+NegRiskOperator <|-- UmaCtfAdapter
+
+NegRiskCtfExchange <|-- NegRiskAdapter
+NegRiskAdapter <|-- NegRiskCtfExchange
+
+@enduml
 ```
 
 **Create a neg risk market and questions**
 
-```mermaid
-sequenceDiagram
-    Admin->>+NegRiskOperator: prepareMarket
-    NegRiskOperator->>+NegRiskAdapter: prepareMarket
-    Admin->>+UmaCtfAdapter: initialize
-    Admin->>+NegRiskOperator: prepareQuestion
-    NegRiskOperator->>+NegRiskAdapter: prepareQuestion
-    NegRiskAdapter->>+ConditionalTokens: prepareCondition
+```plantuml
+@startuml
+
+participant Admin
+participant NegRiskOperator
+participant NegRiskAdapter
+participant UmaCtfAdapter
+participant ConditionalTokens
+
+Admin ->> NegRiskOperator: prepareMarket
+activate NegRiskOperator
+NegRiskOperator ->> NegRiskAdapter: prepareMarket
+activate NegRiskAdapter
+deactivate NegRiskAdapter
+deactivate NegRiskOperator
+
+Admin ->> UmaCtfAdapter: initialize
+activate UmaCtfAdapter
+deactivate UmaCtfAdapter
+
+Admin ->> NegRiskOperator: prepareQuestion
+activate NegRiskOperator
+NegRiskOperator ->> NegRiskAdapter: prepareQuestion
+activate NegRiskAdapter
+NegRiskAdapter ->> ConditionalTokens: prepareCondition
+activate ConditionalTokens
+deactivate ConditionalTokens
+deactivate NegRiskAdapter
+deactivate NegRiskOperator
+@enduml
 ```
 
 **Settling a market**
 
-```mermaid
-sequenceDiagram
-    Proposer->>+OptimisticOracleV2: proposePrice
-    Admin->>+UmaCtfAdapter: resolve
-    UmaCtfAdapter->>+OptimisticOracleV2: settleAndGetPrice
-    UmaCtfAdapter->>+NegRiskOperator: reportPayouts
-    Admin->>+NegRiskOperator: questionIds(requestId) to retrieve questionId
-    Admin->>+NegRiskOperator: resolveQuestion(questionId)
-    NegRiskOperator->>+NegRiskAdapter: reportOutcome
-    NegRiskAdapter->>+ConditionalTokens: reportPayouts
+```plantuml
+@startuml
+
+
+participant Proposer
+participant OptimisticOracleV2
+participant Admin
+participant UmaCtfAdapter
+participant NegRiskOperator
+participant NegRiskAdapter
+participant ConditionalTokens
+
+Proposer ->> OptimisticOracleV2: proposePrice
+activate OptimisticOracleV2
+deactivate OptimisticOracleV2
+
+Admin ->> UmaCtfAdapter: resolve
+activate UmaCtfAdapter
+UmaCtfAdapter ->> OptimisticOracleV2: settleAndGetPrice
+activate OptimisticOracleV2
+deactivate OptimisticOracleV2
+UmaCtfAdapter ->> NegRiskOperator: reportPayouts
+activate NegRiskOperator
+deactivate UmaCtfAdapter
+
+Admin ->> NegRiskOperator: questionIds(requestId) to retrieve questionId
+NegRiskOperator -->> Admin: questionId
+
+Admin ->> NegRiskOperator: resolveQuestion(questionId)
+NegRiskOperator ->> NegRiskAdapter: reportOutcome
+activate NegRiskAdapter
+NegRiskAdapter ->> ConditionalTokens: reportPayouts
+activate ConditionalTokens
+deactivate ConditionalTokens
+deactivate NegRiskAdapter
+deactivate NegRiskOperator
+@enduml
 ```
 
 **Settling a question to YES, but the market already has another question resolved to YES**
 
-```mermaid
-sequenceDiagram
-    Proposer->>+OptimisticOracleV2: proposePrice
-    Admin->>+UmaCtfAdapter: resolve (question 1 of market 1)
-    UmaCtfAdapter->>+OptimisticOracleV2: settleAndGetPrice
-    UmaCtfAdapter->>+NegRiskOperator: reportPayouts
-    Admin->>+NegRiskOperator: questionIds(requestId) to retrieve questionId
-    Admin->>+NegRiskOperator: resolveQuestion(questionId)
-    NegRiskOperator->>+NegRiskAdapter: reportOutcome with true
-    NegRiskAdapter->>+ConditionalTokens: reportPayouts
-    Admin->>+UmaCtfAdapter: resolve (question 2 of market 1)
-    UmaCtfAdapter->>+OptimisticOracleV2: settleAndGetPrice
-    UmaCtfAdapter->>+NegRiskOperator: reportPayouts
-    Admin->>+NegRiskOperator: questionIds(requestId) to retrieve questionId
-    Admin->>+NegRiskOperator: resolveQuestion(questionId)
-    NegRiskOperator->>+NegRiskAdapter: reportOutcome with true (reverts with "MarketAlreadyDetermined")
+```plantuml
+@startuml
+title Market Resolution Sequence (Two Questions)
+
+participant Proposer
+participant OptimisticOracleV2
+participant Admin
+participant UmaCtfAdapter
+participant NegRiskOperator
+participant NegRiskAdapter
+participant ConditionalTokens
+
+== Initial Price Proposal ==
+Proposer ->> OptimisticOracleV2: proposePrice
+activate OptimisticOracleV2
+deactivate OptimisticOracleV2
+
+== Resolution of Question 1 (Success) ==
+Admin ->> UmaCtfAdapter: resolve (question 1 of market 1)
+activate UmaCtfAdapter
+UmaCtfAdapter ->> OptimisticOracleV2: settleAndGetPrice
+activate OptimisticOracleV2
+deactivate OptimisticOracleV2
+UmaCtfAdapter ->> NegRiskOperator: reportPayouts
+activate NegRiskOperator
+deactivate UmaCtfAdapter
+
+Admin ->> NegRiskOperator: questionIds(requestId) to retrieve questionId
+NegRiskOperator -->> Admin: questionId 1
+
+Admin ->> NegRiskOperator: resolveQuestion(questionId 1)
+NegRiskOperator ->> NegRiskAdapter: reportOutcome with true
+activate NegRiskAdapter
+NegRiskAdapter ->> ConditionalTokens: reportPayouts
+activate ConditionalTokens
+deactivate ConditionalTokens
+deactivate NegRiskAdapter
+deactivate NegRiskOperator
+
+== Resolution of Question 2 (Expected Revert) ==
+Admin ->> UmaCtfAdapter: resolve (question 2 of market 1)
+activate UmaCtfAdapter
+UmaCtfAdapter ->> OptimisticOracleV2: settleAndGetPrice
+activate OptimisticOracleV2
+deactivate OptimisticOracleV2
+UmaCtfAdapter ->> NegRiskOperator: reportPayouts
+activate NegRiskOperator
+deactivate UmaCtfAdapter
+
+Admin ->> NegRiskOperator: questionIds(requestId) to retrieve questionId
+NegRiskOperator -->> Admin: questionId 2
+
+Admin ->> NegRiskOperator: resolveQuestion(questionId 2)
+NegRiskOperator ->> NegRiskAdapter: reportOutcome with true
+activate NegRiskAdapter
+NegRiskAdapter -[#RED]> NegRiskOperator: **reverts with "MarketAlreadyDetermined"**
+deactivate NegRiskAdapter
+deactivate NegRiskOperator
+
+@enduml
 ```
 
 #### Creating a Neg Risk Market
